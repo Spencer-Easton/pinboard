@@ -1,0 +1,378 @@
+<script>
+var listMode = false;
+var placeHolderText = "New note";
+var imgUrl;
+
+// Sets timestap to start checking for polling
+var lastUpdate = "NO_VAL";
+var pol = setInterval(function(){google.script.run.withSuccessHandler(evalUpdate).getLastUpdate();},15000);
+
+
+
+
+
+$(function(){
+$('#workArea').freetile(); 
+printImageNotes();
+$('#workArea').removeClass("hidden");
+
+
+
+/* set up color swatch*/
+$('.colorSwatch').each(function(index){
+       var context = this.getContext('2d');
+      switch (index){
+        case 0:
+          context.fillStyle = "#D0E068";
+          break;
+        case 1:
+          context.fillStyle = "#FCF0AD";
+          break;
+        case 2:
+          context.fillStyle = "#E89132";
+          break;
+       }
+        context.fillRect(0, 0, 15, 15);
+       
+});
+
+
+$('.colorSwatch').click(function(e) {
+    $('.colorSwatch').removeClass("selected");
+    $(this).addClass("selected");
+    var offset = $(this).offset();
+    var c = this.getContext('2d');
+    var p = c.getImageData(e.clientX - offset.left, e.clientY - offset.top, 1, 1).data; 
+    var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+    $('#noteColorPicker').val(hex);
+    
+    $
+});
+
+
+
+//this picker isnt available everywhere.
+$("#noteColorPicker").val("#FCF0AD");
+
+ 
+ 
+    var $lastWorkArea;
+ 
+  
+     
+     
+    $('#saveNote').click( function(){
+    var noteItem = {};
+    noteItem["id"] = generateUUID();
+    noteItem["Title"] = $("#noteTitle").val();
+    noteItem["Items"] = [];
+    noteItem["Image"] = imgUrl;
+    noteItem["priority"] = $('#noteColorPicker').val();
+    noteItem["editor"] = {"name": userName,"img":userUrl}; 
+    
+    
+    if(listMode){
+      var listItems = $("#taskList li");
+      
+      listItems.each(function(idx, li){
+      var listItem = $(li).text();
+      
+      noteItem["Items"].push({name: listItem.replace('✖','') , completed:'false'});
+        });
+    
+    }else{
+    noteItem["Items"].push({name:$('#noteTaskItem').val(),completed:'false'});
+    }
+   
+      $lastWorkArea = $("#workArea").clone();
+      
+      
+      google.script.run.withFailureHandler(function(err){
+        $('#workArea').empty();
+        $lastWorkArea.appendTo('#workArea');
+        onFailure(err, "from Note Drawer");
+        }).withSuccessHandler(function(ret){ 
+        $('#workArea').append(ret);$('#workArea').freetile(); cleanNoteBuilder();}).printNote(noteItem);
+         
+         google.script.run.withFailureHandler(function(ret){
+         $('#workArea').empty();
+        $lastWorkArea.appendTo('#workArea');
+        onFailure(err, "From File Saver")}).withSuccessHandler(function(ret){lastUpdate = ret;}).saveToFile(noteItem);
+    
+    
+    });
+    
+     $('#picButton').click( function(e) {    
+     e.stopPropagation(); 
+     $("#inputFooter").show();
+       $('#searchWrapper > span').prependTo('#inputFooter');
+     
+      $('#imageArea').show();
+      $('fileButton').focus();
+      
+      
+    });
+    
+    $('#listButton').click( function(e) {    
+     e.stopPropagation();
+      listMode = !listMode;
+      if(listMode == true){
+      placeHolderText = "New item";
+      }else{
+      placeHolderText = "New note";
+       $('#taskList').empty();
+      
+      }
+      
+      $('#noteTaskItem').focus();
+      
+    });
+    
+    
+    
+    $('#taskList').delegate( "a", 'click', function(e) {    
+     e.stopPropagation();
+      $(this).parents('li').remove();
+    });
+     
+   
+   
+   
+   $( "#noteTaskItem" ).focus(function() {
+       $("#noteTitle").show();
+       $("#inputFooter").show();
+       $("#taskList").show();
+       $("#noteTaskItem").attr("placeholder", placeHolderText);
+       $('#searchWrapper > span').prependTo('#inputFooter');
+     });
+
+
+
+   $("#noteTaskItem").keypress(function(e) {
+      if(e.keyCode == 13) {
+        if(listMode){
+          $("#taskList").append('<li>' + $('#noteTaskItem').val() + '<a class="closeX">&nbsp;&#10006;</a></li>');
+          $("#noteTaskItem").val("");
+        }else{
+          $('#saveNote').trigger("click");
+        }
+      }
+     });
+        
+
+    $("#noteTitle").keypress(function(e) {
+      if(e.keyCode == 13) {
+        $("#noteTaskItem").focus();}
+        });
+
+   
+   $("#docTitle").click(function () {
+    if(!$('#docTitleBox').length)
+    $("#docTitle").html(function () {
+        return "<input id='docTitleBox' type=\"text\" value=\"" + $(this).html() + "\" />";
+    });
+   });     
+   
+  
+ $('.header').delegate( "#docTitleBox", 'change', function(e) {    
+       var newName = $("#docTitleBox").val();
+          $("#docTitle").text(function () {return newName;});
+          google.script.run.withFailureHandler(function(e){
+               $("#docTitle").text(function () {return google.script.run.getDocName();});
+          }).withSuccessHandler(function(ret){lastUpdate=ret;}).setDocName(newName);
+          
+    });
+     
+  $('.header').delegate( "#docTitleBox", 'keypress', function(e) {    
+       if(e.keyCode ==13){
+       var newName = $("#docTitleBox").val();
+          $("#docTitle").text(function () {return newName;});
+          google.script.run.withFailureHandler(function(e){
+               $("#docTitle").text(function () {return google.script.run.getDocName();});
+          }).withSuccessHandler(function(ret){lastUpdate=ret;}).setDocName(newName);
+          
+    }});
+     
+ 
+
+   
+   
+   
+
+    $('body').click(function(evt) {
+      if($(evt.target).parents('#noteBuilder').length==0) { //Clicked outside of the noteBuilder DIV
+        cleanNoteBuilder();}});
+
+     $("#fileButton").change(function() {
+     
+     var val = $(this).val();
+
+    switch(val.substring(val.lastIndexOf('.') + 1).toLowerCase()){
+        case 'gif': case 'jpg': case 'png': case 'bmp': case 'jpeg':
+             google.script.run.withFailureHandler(onFailure).withSuccessHandler(updateImage).uploadImage(this.parentNode); 
+            break;
+        default:
+            $(this).val('');
+            // error message here
+            alert("Sorry, let's choose an image file: jpg/jpeg, png, bmp, gif/jif ");
+            break;
+    }
+     
+            
+      
+       
+    });
+   
+ $('#workArea').on('click','.noteHeader', function(){
+      if(!$(this).hasClass("noteEdit")){
+      $(this).html(function(){return '<input class="longBox editBox" type="text" value="'+ $(this).text() +'" />'});
+      $(this).addClass("noteEdit");
+    }
+   
+    
+     
+ });
+  
+ $('#workArea').on('change','.editBox',function(e){
+   $(this).parent().removeClass('noteEdit');
+   var body = {header:$(this).val(), body:false, items:false};
+   var noteId = $(this).closest('.note').attr("data-noteId");
+   $(this).parent('.noteHeader').html($(this).val());
+ google.script.run.withFailureHandler(onFailure).withSuccessHandler(function(ret){lastUpdate=ret;}).updateNote(noteId,body);
+ });
+   
+   
+$('#workArea').on('keypress','.editBox',function(e){
+   if(e.keyCode == 13){
+   $(this).parent().removeClass('noteEdit');
+   var body = {header:$(this).val(), body:false, items:false};
+   var noteId = $(this).closest('.note').attr("data-noteId");
+   $(this).parent('.noteHeader').html($(this).val());
+ google.script.run.withFailureHandler(onFailure).withSuccessHandler(function(ret){lastUpdate=ret;}).updateNote(noteId,body);
+ }});
+ 
+ 
+  
+  $('#workArea').on('change','.noteCheck',function(e){
+    var selected =  ($(this).prop( "checked" )) ? 'true':'false';
+    
+     $(this).siblings('span').toggleClass('stroked');
+     
+     if($(this).siblings('span').hasClass('stroked')){
+     $(this).closest('li').appendTo($(this).closest('ul'));
+     }else{$(this).closest('li').prependTo($(this).closest('ul'));
+     }
+   
+   var body = {header:false, body:false, items:[{index:$(this).attr("data-myIndex"),name:false,completed:selected}]};
+   var noteId = $(this).closest('.note').attr("data-noteId");
+   
+    google.script.run.withFailureHandler(onFailure).withSuccessHandler(function(ret){lastUpdate = ret}).updateNote(noteId,body);
+  
+  });
+  
+  
+  
+  $('#workArea').on('click','.removeNote',function(e){
+    var myId = $(this).attr("data-noteId");
+     $(this).parent().parent().remove();
+     $('#workArea').freetile();
+     google.script.run.withFailureHandler(onFailure).removeNote(myId);
+  }); 
+    
+    $('#workArea').on('click','.lbImage',function(e){
+    
+   
+   $('#lbFullImage').attr("src", $(this).attr("src"));
+    $('#fade').show();
+     
+    }); 
+  
+   $('#fade').click(function(){
+   $('#lbFullImage').attr("src","");
+   $(this).hide();
+   }); 
+    
+    
+    
+   $(".stroked").each(function(){
+    $(this).closest('li').appendTo($(this).closest('ul'));
+    }); 
+    
+
+
+
+
+});
+
+ 
+function updateImage(imageUrl){
+imgUrl = imageUrl;
+$("#testImage").html("<img src='https://drive.google.com/uc?id=" + imageUrl +"'style='max-width:100%'>");
+
+}
+
+
+function onFailure(error, from) {
+from = from || "";
+    alert("Oh Snap!  "+ error.message + " " + from);
+  }
+
+function cleanNoteBuilder(){
+$('#inputFooter > span').appendTo('#searchWrapper');
+        $("#noteTaskItem").val("");
+        $('#noteTitle').hide();
+        $('#noteTitle').val("");
+        $('#inputFooter').hide();
+        $('#taskList').hide();
+        $('#taskList').empty();
+        $('#testImage img').remove();
+         imgUrl = "";
+         $('#imageArea').hide();
+         $(".colorSwatch").removeClass("selected");
+         
+        listMode = false;
+        placeHolderText = "New note";
+}
+
+function generateUUID(){
+    var d = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (d + Math.random()*16)%16 | 0;
+        d = Math.floor(d/16);
+        return (c=='x' ? r : (r&0x7|0x8)).toString(16);
+    });
+    return uuid;
+}
+
+
+
+function rgbToHex(r, g, b) {
+    if (r > 255 || g > 255 || b > 255)
+        throw "Invalid color component";
+    return ((r << 16) | (g << 8) | b).toString(16);
+}
+
+
+
+function evalUpdate(ret){
+   if (lastUpdate == "NO_VAL"){
+   lastUpdate = ret;
+   } else if ( lastUpdate != ret) {
+    lastUpdate = ret;
+    google.script.run.withFailureHandler(onFailure).withSuccessHandler(updateNotes).getNewNotes();
+  }
+}
+
+
+function updateNotes(ret){
+$("#docTitle").text(function () {return google.script.run.getDocName();});
+$('.note').remove();
+$('#workArea').append(ret);
+$('#workArea').freetile(); 
+}
+
+
+
+
+</script>
+
