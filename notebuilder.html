@@ -1,0 +1,33 @@
+<div id="noteBuilder" >
+<div class="center shadow box">
+<div id="imageArea" class="center" hidden><div class="center" style="width:240px;min-height:50px;height:auto;"><div style="max-width:500px"id="testImage"></div><form id="fileForm"><input name = "fileButton" id="fileButton" type="file" accept="image/*,source=camera"></form></div></div> 
+       <input type="text" id="noteTitle" class="inputBox longBox" placeholder="Title"  hidden/>
+       <ul id="taskList" class="cleanList"></ul>
+       <div id="searchWrapper">
+         <input type="text" id="noteTaskItem" class="inputBox longBox"placeholder="New note"/>
+         <span>
+         <a href="#" id="listButton" ><img class="icon" src="https://googledrive.com/host/0B_j9_-NbJQQDTVVXTks0aXVfbmM/list.png" height=30 width=30 alt="Toggle List"></a>
+         <a href="#" id="picButton" ><img class="icon" src="https://googledrive.com/host/0B_j9_-NbJQQDTVVXTks0aXVfbmM/img.png" height=30 width=30 alt="Add Picture"></a>
+          
+          </span>
+       </div>
+       <div id="inputFooter" hidden>
+       
+       <canvas width="15" height="15"  class="colorSwatch icon"></canvas>
+       <canvas  width="15" height="15"  class="colorSwatch icon"></canvas>
+       <canvas width="15" height="15"  class="colorSwatch icon"></canvas>
+       
+       <input type="color" id="noteColorPicker" style="width:50px;" list="colors" />
+<datalist id="colors">
+  <option>#E89132</option> 
+  <option>#FCF0AD</option> 
+  <option>#D0E068</option> 
+</datalist>
+
+		
+    
+<button id="saveNote" class="blue">Done</button></div>
+       
+       
+</div>
+</div>
